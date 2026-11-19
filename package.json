@@ -2,6 +2,7 @@
   "name": "hack-playground",
   "private": true,
   "dependencies": {
-    "codemirror": "5.65.21"
+    "codemirror": "5.65.21",
+    "lzma": "2.3.2"
   }
 }

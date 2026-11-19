@@ -18,11 +18,19 @@ shutil.copytree(root / "web", dist, dirs_exist_ok=True)
 codemirror = root / "node_modules" / "codemirror"
 editor = dist / "editor"
 editor.mkdir(exist_ok=True)
-for asset in ["lib/codemirror.js", "lib/codemirror.css", "mode/clike/clike.js", "mode/php/php.js"]:
+for asset in [
+    "lib/codemirror.js", "lib/codemirror.css", "mode/clike/clike.js", "mode/php/php.js",
+    "addon/lint/lint.js", "addon/lint/lint.css",
+]:
     shutil.copy(codemirror / asset, editor)
 licenses = dist / "licenses"
 licenses.mkdir(exist_ok=True)
 shutil.copyfile(codemirror / "LICENSE", licenses / "CodeMirror.txt")
+
+lzma = root / "node_modules" / "lzma"
+# The minified distribution mangles MessageEvent.data in the worker handler.
+shutil.copyfile(lzma / "src/lzma_worker.js", dist / "lzma-worker.js")
+shutil.copyfile(lzma / "LICENSE", licenses / "LZMA.txt")
 
 pkg = dist / "pkg"
 pkg.mkdir(exist_ok=True)

@@ -57,6 +57,10 @@ pub fn check(source: &str) -> Result<Vec<Value>, String> {
             let mut claim = message(&diagnostic.claim.0, &diagnostic.claim.1);
             claim["phase"] = json!(hh::diagnostics_helpers::phase_of_code(diagnostic.code));
             claim["custom_messages"] = json!(diagnostic.custom_msgs);
+            claim["severity"] = json!(match diagnostic.severity {
+                hh::user_diagnostic::Severity::Err => "error",
+                hh::user_diagnostic::Severity::Warning { .. } => "warning",
+            });
             claim["code"] = json!(diagnostic.code);
             claim["reasons"] = diagnostic
                 .reasons

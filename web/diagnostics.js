@@ -21,8 +21,8 @@ function element(tag, css, text) {
 }
 
 export function renderDiagnostics(editor, output, diagnostics) {
-  const marks = [];
-  if (!diagnostics.length) return marks;
+  const annotations = [];
+  if (!diagnostics.length) return annotations;
   const offset = editorOffsets(editor.getValue());
   function range(message) {
     if (message.file !== 'main.hack') return null;
@@ -42,7 +42,7 @@ export function renderDiagnostics(editor, output, diagnostics) {
     return link;
   }
   for (const diagnostic of diagnostics) {
-    const card = element('div', 'diagnostic', '');
+    const card = element('div', 'diagnostic ' + diagnostic.severity, '');
     const claim = element('p', 'claim', diagnostic.message);
     claim.append(element('span', 'code', diagnostic.phase + '[' + diagnostic.code + ']'));
     card.append(claim, location(diagnostic));
@@ -58,7 +58,22 @@ export function renderDiagnostics(editor, output, diagnostics) {
     for (const message of diagnostic.custom_messages) card.append(element('p', '', message));
     output.append(card);
     const positions = range(diagnostic);
-    if (positions) marks.push(editor.markText(...positions, {className: 'issue', title: diagnostic.message}));
+    if (positions) {
+      let [from, to] = positions;
+      // Insertion diagnostics at EOF can point between characters. Give the
+      // underline a visible character while the location keeps its exact span.
+      const lineEnd = editor.getLine(from.line).length;
+      if (from.line === to.line && from.ch === to.ch && from.ch < lineEnd) {
+        to = editor.findPosH(to, 1, 'char');
+      } else if (from.ch > 0 && from.ch === lineEnd &&
+          (CodeMirror.cmpPos(from, to) === 0 || (to.line === from.line + 1 && to.ch === 0))) {
+        from = editor.findPosH(from, -1, 'char');
+      }
+      annotations.push({
+        from, to, severity: diagnostic.severity,
+        message: [diagnostic.message, ...diagnostic.reasons.map(r => r.message)].join('\n'),
+      });
+    }
   }
-  return marks;
+  return annotations;
 }

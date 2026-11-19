@@ -1,5 +1,6 @@
 import {createEditor} from './editor.js';
 import {renderDiagnostics} from './diagnostics.js';
+import {decodeSource, encodeSource} from './share.js';
 
 const textarea = document.querySelector('#code');
 const status = document.querySelector('#status');
@@ -7,12 +8,21 @@ const output = document.querySelector('#output');
 const retry = document.querySelector('#retry');
 const shareStatus = document.querySelector('#share-status');
 
-const saved = new URLSearchParams(location.hash.slice(1)).get('code');
-if (saved !== null && saved.length <= 100000) textarea.value = saved;
+if (location.hash.length > 1) {
+  textarea.readOnly = true;
+  try {
+    textarea.value = await decodeSource(location.hash.slice(1));
+  } catch {
+    shareStatus.textContent = 'Could not open the shared code.';
+  } finally {
+    textarea.readOnly = false;
+  }
+}
 const editor = createEditor(textarea);
 let version = 0;
 let worker, timer, ready, checking;
-let marks = [];
+let annotations = [];
+editor.setOption('lint', {lintOnChange: false, getAnnotations: () => annotations});
 
 function check() {
   if (!ready || checking) return;
@@ -54,14 +64,17 @@ function start() {
     }
     const count = data.diagnostics.length;
     status.textContent = count ? count + (count === 1 ? ' diagnostic' : ' diagnostics') : 'No diagnostics.';
-    editor.operation(() => { marks = renderDiagnostics(editor, output, data.diagnostics); });
+    annotations = renderDiagnostics(editor, output, data.diagnostics);
+    editor.performLint();
   };
 }
 
 editor.on('changes', () => {
   version++;
-  editor.operation(() => { for (const mark of marks) mark.clear(); });
-  marks = [];
+  if (annotations.length) {
+    annotations = [];
+    editor.performLint();
+  }
   output.replaceChildren();
   shareStatus.textContent = '';
   if (ready) status.textContent = 'Checking…';
@@ -70,18 +83,24 @@ editor.on('changes', () => {
 });
 
 retry.onclick = start;
-document.querySelector('#share').onclick = async () => {
-  const code = editor.getValue();
-  if (new TextEncoder().encode(code).length > 100000) {
-    shareStatus.textContent = 'Example is too large for a share link.';
-    return;
-  }
-  location.hash = new URLSearchParams({code}).toString();
+const share = document.querySelector('#share');
+share.onclick = async () => {
+  const revision = version;
+  share.disabled = true;
   try {
-    await navigator.clipboard.writeText(location.href);
-    shareStatus.textContent = 'Link copied.';
-  } catch {
-    shareStatus.textContent = 'Copy the link from your address bar.';
+    const fragment = await encodeSource(editor.getValue());
+    if (revision !== version) return;
+    location.hash = fragment;
+    try {
+      await navigator.clipboard.writeText(location.href);
+      shareStatus.textContent = 'Link copied.';
+    } catch {
+      shareStatus.textContent = 'Copy the link from your address bar.';
+    }
+  } catch (error) {
+    shareStatus.textContent = error.message;
+  } finally {
+    share.disabled = false;
   }
 };
 start();

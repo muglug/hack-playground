@@ -5,6 +5,7 @@ const check = await loadChecker();
 const greet = 'function greet(string $name): string {\n  return HH\\Lib\\Str\\length($name);\n}';
 const [diagnostic] = check(greet);
 assert.equal(diagnostic.code, 4110);
+assert.equal(diagnostic.severity, 'error');
 assert.equal(diagnostic.phase, 'Typing');
 assert.equal(diagnostic.line, 2);
 assert.equal(greet.slice(diagnostic.start, diagnostic.end), 'HH\\Lib\\Str\\length($name)');
@@ -29,4 +30,7 @@ assert.ok(check(classes.replace('int {return 1;', 'string {return "";') + call).
 assert.ok(check(call).some(d => d.code === 2049));
 assert.deepEqual(check(classes + call), []);
 assert.deepEqual(check(''), []);
+const [warning] = check('function f(int $n): int { return $n ?? 0; }');
+assert.equal(warning.code, 12023);
+assert.equal(warning.severity, 'warning');
 console.log('Hack WASM passed diagnostic, reason, and edit-isolation checks.');
