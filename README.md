@@ -3,7 +3,8 @@
 The playground runs the Rust port of the Hack typechecker in a browser worker.
 It checks one `main.hack` buffer against embedded Hack and HSL declarations.
 It highlights Hack syntax and checks each edit automatically.
-Write code using `.hack` syntax, with no `<?hh` opening tag. After editing, copy the address bar URL to share the current buffer.\nThe source is stored in the URL fragment.
+Write code using `.hack` syntax, with no `<?hh` opening tag. Use **Get link**
+to copy a URL that stores the current editor contents in its fragment.
 
 ## Local build
 
