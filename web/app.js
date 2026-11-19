@@ -5,6 +5,7 @@ const textarea = document.querySelector('#code');
 const status = document.querySelector('#status');
 const output = document.querySelector('#output');
 const retry = document.querySelector('#retry');
+const shareStatus = document.querySelector('#share-status');
 
 const saved = new URLSearchParams(location.hash.slice(1)).get('code');
 if (saved !== null && saved.length <= 100000) textarea.value = saved;
@@ -12,7 +13,6 @@ const editor = createEditor(textarea);
 let version = 0;
 let worker, timer, ready, checking;
 let marks = [];
-let shareTimer;
 
 function check() {
   if (!ready || checking) return;
@@ -63,19 +63,25 @@ editor.on('changes', () => {
   editor.operation(() => { for (const mark of marks) mark.clear(); });
   marks = [];
   output.replaceChildren();
+  shareStatus.textContent = '';
   if (ready) status.textContent = 'Checking…';
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   check();
-  clearTimeout(shareTimer);
-  shareTimer = setTimeout(updateShareLink, 350);
 });
 
 retry.onclick = start;
-function updateShareLink() {
+document.querySelector('#share').onclick = async () => {
   const code = editor.getValue();
-  const url = new URL(location.href);
-  url.hash = code.length <= 100000 && new TextEncoder().encode(code).length <= 100000
-    ? new URLSearchParams({code}).toString() : '';
-  history.replaceState(null, '', url);
-}
-
+  if (new TextEncoder().encode(code).length > 100000) {
+    shareStatus.textContent = 'Example is too large for a share link.';
+    return;
+  }
+  location.hash = new URLSearchParams({code}).toString();
+  try {
+    await navigator.clipboard.writeText(location.href);
+    shareStatus.textContent = 'Link copied.';
+  } catch {
+    shareStatus.textContent = 'Copy the link from your address bar.';
+  }
+};
 start();

@@ -2,7 +2,7 @@
   color-scheme: light;
   /* Light theme and font stacks from hacklang.org. */
   --ink: #1c1e21;
-  --accent: #fb721d;
+  --logo-amber: #e0a33b;
   --link: #c14c03;
   --muted: #525860;
   --border: #dadde1;
@@ -43,5 +43,8 @@ main { max-width: 52rem; margin: 24px auto; padding: 0 16px; }
 button.location { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 button.location { border: 0; background: transparent; padding: 0; }
 button { cursor: pointer; font: inherit; }
-#retry { margin-top: 8px; padding: 7px 14px; border: 0; border-radius: 4px; color: var(--ink); background: var(--accent); font-weight: 600; }
+#retry, #share { padding: 7px 14px; border: 0; border-radius: 4px; color: var(--ink); background: var(--logo-amber); font-weight: 600; }
+#retry { margin-top: 8px; }
+.share { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#share-status { color: var(--muted); font-size: 14px; }
 :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
