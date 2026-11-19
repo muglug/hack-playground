@@ -71,7 +71,7 @@ export function renderDiagnostics(editor, output, diagnostics) {
       }
       annotations.push({
         from, to, severity: diagnostic.severity,
-        message: [diagnostic.message, ...diagnostic.reasons.map(r => r.message)].join('\n'),
+        message: diagnostic.message,
       });
     }
   }

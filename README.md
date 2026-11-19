@@ -6,7 +6,7 @@ It highlights Hack syntax and checks each edit automatically.
 Write code using `.hack` syntax, with no `<?hh` opening tag. Use **Get link**
 to copy a URL that stores the current buffer in its fragment using Hakana’s
 URL-safe LZMA format. Earlier `#code=` links also open. Hover over an
-underlined expression to see the checker’s message and reasons.
+underlined expression to see its diagnostic message. The panel below includes the reasons.
 
 ## Local build
 
