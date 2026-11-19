@@ -1,24 +1,30 @@
 :root {
   color-scheme: light;
-  --ink: #241a2b;
-  --purple: #61296a;
-  --muted: #655f6a;
-  --border: #d5ced8;
-  --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  /* Light theme and font stacks from hacklang.org. */
+  --ink: #1c1e21;
+  --accent: #fb721d;
+  --link: #c14c03;
+  --muted: #525860;
+  --border: #dadde1;
+  --surface: #f5f6f7;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: #f4f2f5; color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+body { margin: 0; background: #fff; color: var(--ink); font: 16px/1.5 var(--sans); }
 header {
-  padding: 26px 16px 28px;
-  text-align: center;
-  background: radial-gradient(ellipse at top, #774780, #49194f);
-  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 22px 12px;
+  background: #fff;
+  color: #222;
+  border-bottom: 1px solid var(--border);
 }
-h1 { margin: 0; font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -.045em; line-height: 1.2; }
-header p { margin: 6px 0 0; color: #f1e5f4; }
+h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.2; }
 main { max-width: 52rem; margin: 24px auto; padding: 0 16px; }
 .panel { background: white; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 16px; }
-.bar { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid var(--border); background: #faf8fb; }
+.bar { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
 h2 { font-size: 14px; margin: 0; }
 #filename, #timing, .language, .location, .code { font-family: var(--mono); }
 #timing, .language { color: var(--muted); font-size: 12px; }
@@ -28,14 +34,13 @@ h2 { font-size: 14px; margin: 0; }
 }
 .CodeMirror-lines { padding: 10px 0; }
 .CodeMirror pre.CodeMirror-line, .CodeMirror pre.CodeMirror-line-like { padding: 0 10px; }
-.CodeMirror-gutters { background: #faf8fb; border-color: #eee8ef; }
-.CodeMirror-linenumber { color: #817686; }
-.cm-s-default .cm-keyword { color: #702d82; }
-.cm-s-default .cm-type, .cm-s-default .cm-builtin { color: #005e66; }
-.cm-s-default .cm-variable-2 { color: #764018; }
-.cm-s-default .cm-def, .cm-s-default .cm-variable { color: #234981; }
-.cm-s-default .cm-string { color: #795016; }
-.cm-s-default .cm-comment { color: #636a71; }
+.CodeMirror-gutters { background: var(--surface); border-color: var(--border); }
+.CodeMirror-linenumber { color: #606770; }
+.cm-s-default .cm-keyword, .cm-s-default .cm-type { color: #00009f; }
+.cm-s-default .cm-variable-2, .cm-s-default .cm-atom, .cm-s-default .cm-number { color: #217876; }
+.cm-s-default .cm-def, .cm-s-default .cm-variable, .cm-s-default .cm-builtin { color: #d73a49; }
+.cm-s-default .cm-string { color: #e3116c; }
+.cm-s-default .cm-comment { color: #686858; font-style: italic; }
 .issue { text-decoration: underline wavy #bd383e; text-underline-offset: 3px; }
 .results { padding: 14px 16px 16px; overflow-wrap: anywhere; }
 #status { margin: 0; color: var(--muted); font-size: 14px; }
@@ -45,11 +50,11 @@ h2 { font-size: 14px; margin: 0; }
 .reasons { margin: 8px 0 0; padding-left: 1.2rem; }
 .reasons li + li { margin-top: 5px; }
 .location { color: var(--muted); font-size: 12px; }
-button.location, footer a { color: var(--purple); text-decoration: underline; text-underline-offset: 2px; }
+button.location, footer a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 button.location { border: 0; background: transparent; padding: 0; }
 button { cursor: pointer; font: inherit; }
-#retry, #share { margin-top: 8px; padding: 7px 14px; border: 0; border-radius: 4px; color: white; background: var(--purple); font-weight: 600; }
+#retry, #share { margin-top: 8px; padding: 7px 14px; border: 0; border-radius: 4px; color: var(--ink); background: var(--accent); font-weight: 600; }
 #share { margin: 0; }
 footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; font-size: 14px; }
 #share-status { color: var(--muted); }
-:focus-visible { outline: 2px solid #703b91; outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
