@@ -4,7 +4,6 @@ import {renderDiagnostics} from './diagnostics.js';
 const textarea = document.querySelector('#code');
 const status = document.querySelector('#status');
 const output = document.querySelector('#output');
-const timing = document.querySelector('#timing');
 const retry = document.querySelector('#retry');
 const shareStatus = document.querySelector('#share-status');
 
@@ -55,7 +54,6 @@ function start() {
     }
     const count = data.diagnostics.length;
     status.textContent = count ? count + (count === 1 ? ' diagnostic' : ' diagnostics') : 'No diagnostics.';
-    timing.textContent = data.ms.toFixed(1) + ' ms';
     editor.operation(() => { marks = renderDiagnostics(editor, output, data.diagnostics); });
   };
 }
@@ -65,7 +63,7 @@ editor.on('changes', () => {
   editor.operation(() => { for (const mark of marks) mark.clear(); });
   marks = [];
   output.replaceChildren();
-  timing.textContent = shareStatus.textContent = '';
+  shareStatus.textContent = '';
   if (ready) status.textContent = 'Checking…';
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   check();

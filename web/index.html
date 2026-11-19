@@ -14,15 +14,13 @@
     <h1>Hack Playground</h1>
   </header>
   <main>
-    <section class="panel" aria-labelledby="filename">
-      <div class="bar"><h2 id="filename">main.hack</h2><span class="language">Hack</span></div>
+    <section class="panel" aria-label="Source editor">
       <textarea id="code" aria-label="Hack source code" spellcheck="false">function greet(string $name): string {
   return HH\Lib\Str\length($name);
 }
 </textarea>
     </section>
-    <section class="panel" aria-labelledby="diagnostics">
-      <div class="bar"><h2 id="diagnostics">Diagnostics</h2><span id="timing" title="Time spent checking the current buffer in the worker"></span></div>
+    <section class="panel" aria-label="Typechecker results">
       <div class="results">
         <p id="status" role="status">Loading typechecker…</p>
         <button id="retry" hidden>Retry checker</button>

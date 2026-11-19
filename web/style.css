@@ -24,10 +24,7 @@ header {
 h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.2; }
 main { max-width: 52rem; margin: 24px auto; padding: 0 16px; }
 .panel { background: white; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 16px; }
-.bar { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
-h2 { font-size: 14px; margin: 0; }
-#filename, #timing, .language, .location, .code { font-family: var(--mono); }
-#timing, .language { color: var(--muted); font-size: 12px; }
+.location, .code { font-family: var(--mono); }
 #code, .CodeMirror {
   width: 100%; height: clamp(13rem, 33vh, 23rem); color: var(--ink);
   font: 15px/1.65 var(--mono); tab-size: 2;
@@ -44,7 +41,10 @@ h2 { font-size: 14px; margin: 0; }
 .issue { text-decoration: underline wavy #bd383e; text-underline-offset: 3px; }
 .results { padding: 14px 16px 16px; overflow-wrap: anywhere; }
 #status { margin: 0; color: var(--muted); font-size: 14px; }
-.diagnostic { border-left: 3px solid #bd383e; padding-left: 12px; margin-top: 14px; }
+/* Announce the count to screen readers while the list shows each diagnostic. */
+.results:has(.diagnostic) #status { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+.diagnostic { border-left: 3px solid #bd383e; padding-left: 12px; }
+.diagnostic + .diagnostic { margin-top: 14px; }
 .claim { margin: 0; font-weight: 650; }
 .code { margin-left: 8px; font-size: 12px; color: var(--muted); font-weight: normal; }
 .reasons { margin: 8px 0 0; padding-left: 1.2rem; }
