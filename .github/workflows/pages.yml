@@ -1,0 +1,53 @@
+name: Hack playground
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up the compiler toolchains
+        run: |
+          rustc --version
+          git clone --depth 1 --branch 3.1.68 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 3.1.68
+          "$RUNNER_TEMP/emsdk/emsdk" activate 3.1.68
+
+      - name: Build and check the WASM bundle
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          bash scripts/build.sh
+          "$EMSDK_NODE" scripts/smoke.mjs
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

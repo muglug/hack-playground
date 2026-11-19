@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hack Playground</title><link rel="stylesheet" href="style.css">
+<header><div><strong>Hack Playground</strong><p>The Hack typechecker, in your browser.</p></div><a href="https://github.com/muglug/hhvm">Source</a></header>
+<main><div class="toolbar"><label for="code">main.hack</label><div><button id="share">Get link</button><button id="check" disabled>Check code</button></div></div>
+<div class="panes"><textarea id="code" spellcheck="false" aria-label="Hack source code">function greet(string $name): string {
+  return 42;
+}
+</textarea><section aria-label="Typechecker results"><h2>Diagnostics</h2><p id="status" role="status">Loading typechecker…</p><pre id="output"></pre></section></div>
+<footer>Experimental Rust port · Code is checked in this browser.</footer></main>
+<script type="module" src="app.js"></script></html>

@@ -1,0 +1,128 @@
+--- a/hphp/hack/src/hh/src/ident_provider.rs
++++ b/hphp/hack/src/hh/src/ident_provider.rs
+@@ -49,7 +49,8 @@
+     /// the bits 62 and 63 set, which is what this is: for every identifier
+     /// an OCaml integer can hold, `is_immutable` and `make_immutable` give
+     /// the OCaml results.
+-    pub const IMMUTABLE_MASK: isize = -(1 << 62);
++    /// On wasm32 the two high bits of the narrower identifier have the same role.
++    pub const IMMUTABLE_MASK: isize = -(1 << (isize::BITS - 2));
+ 
+     pub fn is_immutable(i: T) -> bool {
+         i & IMMUTABLE_MASK != 0
+--- a/hphp/hack/src/hh/src/rt/ocaml_unix.rs
++++ b/hphp/hack/src/hh/src/rt/ocaml_unix.rs
+@@ -72,6 +72,7 @@
+ /// of `fd` and extends `size` bytes forward (backward if negative); `0` means
+ /// to the end of the file. `F_TEST` fails with `EACCES` when another process
+ /// holds a lock on the region.
++#[cfg(not(target_os = "emscripten"))]
+ pub fn lockf(fd: RawFd, cmd: LockCommand, size: i64) -> io::Result<()> {
+     // SAFETY: `flock` is plain data.
+     let mut l: libc::flock = unsafe { std::mem::zeroed() };
+@@ -127,6 +128,11 @@
+     } else {
+         Ok(())
+     }
++}
++
++#[cfg(target_os = "emscripten")]
++pub fn lockf(_fd: RawFd, _cmd: LockCommand, _size: i64) -> io::Result<()> {
++    Err(io::ErrorKind::Unsupported.into())
+ }
+ 
+ /// `Unix.kill pid signal`. As in OCaml (`caml_unix_kill`), the pid is
+--- a/hphp/hack/src/hh/src/shared_mem.rs
++++ b/hphp/hack/src/hh/src/shared_mem.rs
+@@ -17,7 +17,8 @@
+ //! process: a worker clone runs its job on one thread, and the master's
+ //! lookups are made by its world thread.
+ 
++#[cfg(not(target_os = "emscripten"))]
+ use crate::global_config;
+ 
+ /// Configuration object that initializes shared memory.
+ #[derive(Clone, Debug, PartialEq)]
+@@ -37,7 +37,12 @@
+ 
+ /// Default configuration object
+ pub fn default_config() -> Config {
++    #[cfg(target_os = "emscripten")]
++    return empty_config();
++
++    #[cfg(not(target_os = "emscripten"))]
+     let gig = 1024 * 1024 * 1024;
++    #[cfg(not(target_os = "emscripten"))]
+     Config {
+         global_size: gig,
+         heap_size: 20 * gig,
+--- a/hphp/hack/src/hh/src/sys_utils.rs
++++ b/hphp/hack/src/hh/src/sys_utils.rs
+@@ -141,7 +141,14 @@
+                 if follow_symlinks {
+                     libc::utimes(c.as_ptr(), std::ptr::null())
+                 } else {
+-                    libc::lutimes(c.as_ptr(), std::ptr::null())
++                    #[cfg(not(target_os = "emscripten"))]
++                    {
++                        libc::lutimes(c.as_ptr(), std::ptr::null())
++                    }
++                    #[cfg(target_os = "emscripten")]
++                    {
++                        return Err(std::io::ErrorKind::Unsupported.into());
++                    }
+                 }
+             };
+             if ret == 0 {
+@@ -371,6 +378,7 @@
+ }
+ 
+ /// `Sys_utils.is_nfs`: whether `path` is on NFS (or SMB/CIFS).
++#[cfg(not(target_os = "emscripten"))]
+ pub fn is_nfs(path: &str) -> bool {
+     let Ok(c) = std::ffi::CString::new(path) else {
+         return false;
+@@ -397,6 +405,11 @@
+             matches!(&*name, "nfs" | "smbfs" | "cifs")
+         }
+     }
++}
++
++#[cfg(target_os = "emscripten")]
++pub fn is_nfs(_path: &str) -> bool {
++    false
+ }
+ 
+ /// `Sys_utils.set_priorities ~cpu_priority ~io_priority`
+--- a/hphp/hack/src/deps/rust/file_info/Cargo.toml
++++ b/hphp/hack/src/deps/rust/file_info/Cargo.toml
+@@ -21,7 +21,7 @@
+ rc_pos = { path = "../../../utils/rust/pos" }
+ relative_path = { path = "../../../utils/rust/relative_path" }
+ rust_to_ocaml_attr = { path = "../../../rust_to_ocaml/rust_to_ocaml_attr" }
+-rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "session", "vtab"] }
++rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "vtab"] }
+ serde = { version = "1.0.229", features = ["derive", "rc"] }
+ thiserror = "2.0.21"
+ typing_deps_hash = { path = "../../cargo/typing_deps_hash" }
+--- a/hphp/hack/src/naming/names_rust/Cargo.toml
++++ b/hphp/hack/src/naming/names_rust/Cargo.toml
+@@ -17,6 +17,6 @@
+ oxidized = { path = "../../oxidized" }
+ rand = "0.10.3"
+ relative_path = { path = "../../utils/rust/relative_path" }
+-rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "session", "vtab"] }
++rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "vtab"] }
+ serde = { version = "1.0.229", features = ["derive", "rc"] }
+ typing_deps_hash = { path = "../../deps/cargo/typing_deps_hash" }
+--- a/hphp/hack/src/utils/hh24_types/Cargo.toml
++++ b/hphp/hack/src/utils/hh24_types/Cargo.toml
+@@ -16,7 +16,7 @@
+ file_info = { path = "../../deps/rust/file_info" }
+ hh_hash = { path = "../hh_hash" }
+ relative_path = { path = "../rust/relative_path" }
+-rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "session", "vtab"] }
++rusqlite = { version = "0.40.0", features = ["backup", "blob", "bundled", "column_decltype", "fallible_uint", "functions", "limits", "modern_sqlite", "serde_json", "vtab"] }
+ serde = { version = "1.0.229", features = ["derive", "rc"] }
+ serde_json = { version = "1.0.154", features = ["alloc", "float_roundtrip", "raw_value", "unbounded_depth"] }
+ thiserror = "2.0.21"

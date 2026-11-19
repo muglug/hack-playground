@@ -1,0 +1,3 @@
+[submodule "hhvm"]
+	path = hhvm
+	url = https://github.com/muglug/hhvm.git

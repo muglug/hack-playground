@@ -1,0 +1,19 @@
+[package]
+name = "hack-playground"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "hack_playground"
+path = "src/main.rs"
+
+[dependencies]
+hh = { path = "../hhvm/hphp/hack/src/hh", features = ["port"] }
+pos = { path = "../hhvm/hphp/hack/src/hackrs/pos/cargo/pos" }
+serde_json = "1"
+
+[profile.release]
+opt-level = 1
+
+[workspace]
