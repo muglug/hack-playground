@@ -16,8 +16,10 @@ cp -R probe/Cargo.toml probe/Cargo.lock probe/src "$stage/probe/"
 pcre_sha256=4dae6fdcd2bb0bb6c37b5f97c33c2be954da743985369cddac3546e3218bffb8
 pcre_archive=${PCRE_SOURCE_ARCHIVE:-$stage/pcre-8.45.tar.bz2}
 if [[ -z ${PCRE_SOURCE_ARCHIVE:-} ]]; then
-    curl --fail --silent --show-error --location --retry 3 \
-        https://downloads.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.tar.bz2 \
+    printf '%s\n' 'Downloading PCRE 8.45'
+    curl --fail --silent --show-error --location --retry 2 \
+        --connect-timeout 10 --max-time 30 \
+        https://ftp.exim.org/pub/pcre/pcre-8.45.tar.bz2 \
         --output "$pcre_archive"
 fi
 printf '%s  %s\n' "$pcre_sha256" "$pcre_archive" | shasum -a 256 -c -
