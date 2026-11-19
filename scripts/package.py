@@ -15,6 +15,15 @@ with wasm.open("rb") as module:
 
 dist = root / "dist"
 shutil.copytree(root / "web", dist, dirs_exist_ok=True)
+codemirror = root / "node_modules" / "codemirror"
+editor = dist / "editor"
+editor.mkdir(exist_ok=True)
+for asset in ["lib/codemirror.js", "lib/codemirror.css", "mode/clike/clike.js", "mode/php/php.js"]:
+    shutil.copy(codemirror / asset, editor)
+licenses = dist / "licenses"
+licenses.mkdir(exist_ok=True)
+shutil.copyfile(codemirror / "LICENSE", licenses / "CodeMirror.txt")
+
 pkg = dist / "pkg"
 pkg.mkdir(exist_ok=True)
 shutil.copyfile(glue, pkg / "hack_playground.mjs")

@@ -1,50 +1,89 @@
-const code = document.querySelector('#code');
+import {createEditor} from './editor.js';
+import {renderDiagnostics} from './diagnostics.js';
+
+const textarea = document.querySelector('#code');
 const status = document.querySelector('#status');
 const output = document.querySelector('#output');
-const check = document.querySelector('#check');
-const share = document.querySelector('#share');
-try {
-  const saved = new URLSearchParams(location.hash.slice(1)).get('code');
-  if (saved !== null && saved.length <= 100000) code.value = saved;
-} catch { status.textContent = 'Could not read the shared code.'; }
-let worker, timer;
-function start(run = false) {
-  worker?.terminate(); // Reset Rust thread-local caches between runs.
+const timing = document.querySelector('#timing');
+const retry = document.querySelector('#retry');
+const shareStatus = document.querySelector('#share-status');
+
+const saved = new URLSearchParams(location.hash.slice(1)).get('code');
+if (saved !== null && saved.length <= 100000) textarea.value = saved;
+const editor = createEditor(textarea);
+let version = 0;
+let worker, timer, ready, checking;
+let marks = [];
+
+function check() {
+  if (!ready || checking) return;
+  checking = true;
+  worker.postMessage({version, code: editor.getValue()});
+  timer = setTimeout(() => fail('The check timed out. Edit the example or retry.'), 30000);
+}
+
+function fail(message) {
   clearTimeout(timer);
-  check.disabled = true;
-  status.textContent = run ? 'Checking…' : 'Loading typechecker…';
-  const source = code.value;
-  worker = new Worker(new URL('./checker-worker.js', import.meta.url), {type:'module'});
-  timer = setTimeout(() => fail('Checker timed out. Try a smaller example.'), 30000);
-  worker.onerror = () => fail('The checker worker failed to start.');
-  worker.onmessage = ({data}) => {
+  worker?.terminate();
+  worker = null;
+  ready = checking = false;
+  status.textContent = message;
+  retry.hidden = false;
+}
+
+function start() {
+  retry.hidden = true;
+  status.textContent = 'Loading typechecker…';
+  const current = new Worker(new URL('./checker-worker.js', import.meta.url), {type: 'module'});
+  worker = current;
+  timer = setTimeout(() => fail('The checker took too long to load.'), 60000);
+  current.onerror = () => { if (worker === current) fail('The checker worker stopped.'); };
+  current.onmessage = ({data}) => {
+    if (worker !== current) return;
+    clearTimeout(timer);
+    if (data.type === 'failed') return fail(data.message);
     if (data.type === 'ready') {
-      if (run) worker.postMessage({code:source});
-      else { clearTimeout(timer); check.disabled = false; status.textContent = 'Ready to check.'; }
-    } else if (data.type === 'unavailable') {
-      fail('Could not load the Hack typechecker.');
-      output.textContent = data.message;
-    } else if (data.type === 'error') {
-      fail('Typechecker failed.'); output.textContent = data.message;
-    } else if (data.type === 'result') {
-      clearTimeout(timer); check.disabled = false;
-      worker.terminate();
-      if (source !== code.value) {
-        status.textContent = 'Code changed. Check again.';
-        return;
-      }
-      status.textContent = data.diagnostics.length === 0 ? 'No diagnostics.' :
-        `${data.diagnostics.length} ${data.diagnostics.length === 1 ? 'diagnostic' : 'diagnostics'}`;
-      output.textContent = data.diagnostics.map(d => `${d.file}:${d.line}:${d.column} [${d.code}] ${d.message}`).join('\n\n');
+      ready = true;
+      status.textContent = 'Checking…';
+      return check();
     }
+    checking = false;
+    if (data.version !== version) return check();
+    if (data.type === 'error') {
+      status.textContent = data.message;
+      return;
+    }
+    const count = data.diagnostics.length;
+    status.textContent = count ? count + (count === 1 ? ' diagnostic' : ' diagnostics') : 'No diagnostics.';
+    timing.textContent = data.ms.toFixed(1) + ' ms';
+    editor.operation(() => { marks = renderDiagnostics(editor, output, data.diagnostics); });
   };
 }
-function fail(message) { clearTimeout(timer); worker?.terminate(); status.textContent = message; check.disabled = false; }
-check.onclick = () => { output.textContent = ''; start(true); };
-share.onclick = async () => {
-  if (code.value.length > 100000) { status.textContent = 'Example is too large for a share link.'; return; }
-  location.hash = new URLSearchParams({code:code.value}).toString();
-  try { await navigator.clipboard.writeText(location.href); status.textContent = 'Link copied.'; }
-  catch { status.textContent = 'Copy the link from your address bar.'; }
+
+editor.on('changes', () => {
+  version++;
+  editor.operation(() => { for (const mark of marks) mark.clear(); });
+  marks = [];
+  output.replaceChildren();
+  timing.textContent = shareStatus.textContent = '';
+  if (ready) status.textContent = 'Checking…';
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  check();
+});
+
+retry.onclick = start;
+document.querySelector('#share').onclick = async () => {
+  const code = editor.getValue();
+  if (new TextEncoder().encode(code).length > 100000) {
+    shareStatus.textContent = 'Example is too large for a share link.';
+    return;
+  }
+  location.hash = new URLSearchParams({code}).toString();
+  try {
+    await navigator.clipboard.writeText(location.href);
+    shareStatus.textContent = 'Link copied.';
+  } catch {
+    shareStatus.textContent = 'Copy the link from your address bar.';
+  }
 };
 start();

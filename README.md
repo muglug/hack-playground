@@ -2,12 +2,13 @@
 
 The playground runs the Rust port of the Hack typechecker in a browser worker.
 It checks one `main.hack` buffer against embedded Hack and HSL declarations.
+It highlights Hack syntax and checks each edit automatically.
 Write code using `.hack` syntax, with no `<?hh` opening tag. **Get link** puts
 the editor contents in the URL fragment.
 
 ## Local build
 
-Install [rustup](https://rustup.rs/) and have Python 3, Make, and a native C
+Install [rustup](https://rustup.rs/) and have npm, Python 3, Make, and a native C
 compiler available. The repository's `rust-toolchain.toml` selects the Rust
 nightly and browser target.
 
@@ -24,10 +25,17 @@ bash scripts/build.sh
 python3 -m http.server 8000 --directory dist
 ```
 
-Open <http://localhost:8000> and click **Check code** to see the sample's
-invalid-return-type diagnostic. Change `return 42;` to `return $name;` and
-check again. The smoke test runs the actual WASM and checks valid code, a
-type mismatch, a syntax error, and an invalid regex literal.
+Open <http://localhost:8000> to see the sample’s return-type diagnostic. The
+reasons point to the declared `string` return type and the HSL declaration
+that supplies `int`. Click a `main.hack` location to select it in the editor.
+Change the return expression to `$name` to clear the diagnostic.
+
+Run `"$EMSDK_NODE" scripts/benchmark.mjs` to time module startup, the first
+check, and repeated edits independently. It alternates valid and invalid
+return expressions in buffers of one and 25 functions, warms each workload
+for 20 edits, and reports median and p95 over the next 100. Times include
+encoding the source and decoding diagnostics. Browser downloads, worker
+messages, and rendering are outside the measurement.
 
 The build extracts the Rust sources and builtin declarations from the checked-out
 `hhvm` commit, applies [the Emscripten patch](patches/hhvm-emscripten.patch) to
@@ -46,7 +54,7 @@ worker and WASM use relative URLs so the site can sit under a repository path.
 
 This follows [Hakana's build and deploy workflow](https://github.com/slackhq/hakana/blob/main/.github/workflows/pages.yml).
 Hakana uses wasm-pack and Webpack for its frontend. This playground uses
-Emscripten's generated ES module with the existing static editor.
+Emscripten’s generated ES module and serves CodeMirror alongside the checker.
 
 ## Browser build choices
 
@@ -54,8 +62,9 @@ Emscripten's generated ES module with the existing static editor.
   and its dependencies expect. The patch handles the remaining platform
   differences and the Rust port's 32-bit identifier and memory configuration.
   The checker uses the single-file typechecking service and an in-memory file
-  overlay. Each check gets a fresh worker so diagnostics and provider caches
-  from previous edits are discarded.
+  overlay. The worker loads builtin declarations once. Each edit runs in the
+  checker’s isolated IDE context so changed declarations, folded classes,
+  syntax errors, and suppressions have the lifetime of that revision.
 - SQLite is present in the dependency graph through naming-table support and
   shared types. This entry point uses the in-memory naming store. The build
   patch disables SQLite session support in its staged dependency manifests,

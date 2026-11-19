@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
+npm ci --ignore-scripts --no-audit --no-fund
 
 # Build from the pinned source without modifying the submodule checkout.
 stage=$(mktemp -d)

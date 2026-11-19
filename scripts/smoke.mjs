@@ -1,32 +1,32 @@
 import {strict as assert} from 'node:assert';
-import {readFile} from 'node:fs/promises';
+import {loadChecker} from './checker.mjs';
 
-import init from '../dist/pkg/hack_playground.mjs';
+const check = await loadChecker();
+const greet = 'function greet(string $name): string {\n  return HH\\Lib\\Str\\length($name);\n}';
+const [diagnostic] = check(greet);
+assert.equal(diagnostic.code, 4110);
+assert.equal(diagnostic.phase, 'Typing');
+assert.equal(diagnostic.line, 2);
+assert.equal(greet.slice(diagnostic.start, diagnostic.end), 'HH\\Lib\\Str\\length($name)');
+const [expected, actual] = diagnostic.reasons;
+assert.equal(expected.message, 'Expected `string' + String.fromCharCode(96));
+assert.equal(expected.file, 'main.hack');
+assert.equal(greet.slice(expected.start, expected.end), 'string');
+assert.equal(actual.message, 'But got `int' + String.fromCharCode(96));
+assert.match(actual.file, /str\/introspect\.hhi$/);
+assert.ok(actual.line > 0);
 
-const wasmBinary = await readFile(new URL('../dist/pkg/hack_playground.wasm', import.meta.url));
-const encoder = new TextEncoder();
+assert.deepEqual(check(greet.replace('): string', '): int')), []);
+assert.deepEqual(check('function f(): int { return count(vec[1, 2]); }'), []);
+assert.ok(check('function f( { return 42; }').some(d => d.code === 1002));
+assert.ok(check('function f(): void { $p = re"/(/"; }').some(d => d.code === 4275));
 
-async function check(source) {
-  // The site also starts a fresh instance for each check.
-  const wasm = await init({wasmBinary});
-  const input = encoder.encode(source);
-  const result = JSON.parse(
-    wasm.ccall('check_hack', 'string', ['array', 'number'], [input, input.length])
-  );
-  assert.ok(Array.isArray(result.Ok), JSON.stringify(result));
-  return result.Ok;
-}
-
-assert.deepEqual(await check('function f(): int { return count(vec[1, 2]); }'), []);
-
-const errors = await check('function f(): string {\n  return 42;\n}');
-assert.ok(errors.some(diagnostic =>
-  diagnostic.code === 4110 && diagnostic.file === 'main.hack' && diagnostic.line === 2
-), JSON.stringify(errors));
-
-const parseErrors = await check('function f( { return 42; }');
-assert.ok(parseErrors.some(diagnostic => diagnostic.code === 1002), JSON.stringify(parseErrors));
-
-const regexErrors = await check('function f(): void { $p = re"/(/"; }');
-assert.ok(regexErrors.some(diagnostic => diagnostic.code === 4275), JSON.stringify(regexErrors));
-console.log('Hack WASM returned the expected type, syntax, and regex diagnostics.');
+// The same worker must forget old shallow declarations and folded classes.
+const call = 'function f(C $c): int { return $c->value(); }';
+const classes = 'class B { public function value(): int {return 1;} } class C extends B {}';
+assert.deepEqual(check(classes + call), []);
+assert.ok(check(classes.replace('int {return 1;', 'string {return "";') + call).some(d => d.code === 4110));
+assert.ok(check(call).some(d => d.code === 2049));
+assert.deepEqual(check(classes + call), []);
+assert.deepEqual(check(''), []);
+console.log('Hack WASM passed diagnostic, reason, and edit-isolation checks.');

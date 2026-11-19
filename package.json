@@ -1,0 +1,7 @@
+{
+  "name": "hack-playground",
+  "private": true,
+  "dependencies": {
+    "codemirror": "5.65.21"
+  }
+}
