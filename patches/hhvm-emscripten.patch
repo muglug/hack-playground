@@ -126,3 +126,57 @@
  serde = { version = "1.0.229", features = ["derive", "rc"] }
  serde_json = { version = "1.0.154", features = ["alloc", "float_roundtrip", "raw_value", "unbounded_depth"] }
  thiserror = "2.0.21"
+--- a/hphp/hack/src/hh/src/ctx.rs
++++ b/hphp/hack/src/hh/src/ctx.rs
+@@ -273,13 +273,13 @@
+
+ /// Whether the stores are on the shared heap (see
+ /// [`use_shared_memory_stores`]).
+-#[cfg(feature = "port")]
++#[cfg(all(feature = "port", not(target_os = "emscripten")))]
+ pub fn shared_memory_stores() -> bool {
+     SHARED_MEMORY_STORES.load(std::sync::atomic::Ordering::Relaxed) && crate::hh_shared::is_initialized()
+ }
+
+-/// (Without the port there is no shared heap.)
+-#[cfg(not(feature = "port"))]
++/// The browser checker and the build without the port use process-local stores.
++#[cfg(any(not(feature = "port"), target_os = "emscripten"))]
+ pub fn shared_memory_stores() -> bool {
+     false
+ }
+@@ -289,8 +289,7 @@
+ /// heap's counter, so that two sets of stores never share keys.
+ #[cfg(feature = "port")]
+ fn shared_memory_namespace() -> Option<u64> {
+-    (SHARED_MEMORY_STORES.load(std::sync::atomic::Ordering::Relaxed) && crate::hh_shared::is_initialized())
+-        .then(crate::hh_shared::counter_next)
++    shared_memory_stores().then(crate::hh_shared::counter_next)
+ }
+
+ #[cfg(not(feature = "port"))]
+--- a/hphp/hack/src/hh/src/naming_sqlite.rs
++++ b/hphp/hack/src/hh/src/naming_sqlite.rs
+@@ -1300,6 +1300,9 @@
+ /// `get_db_and_stmt_cache`: runs `f` on the cached connection of `path`,
+ /// opening it first if the cache holds another path (or none).
+ fn with_db_and_stmt_cache<A>(path: &DbPath, f: impl FnOnce(&Connection) -> Result<A>) -> Result<A> {
++    if cfg!(target_os = "emscripten") {
++        return Err(Error::Failure("The browser checker uses an in-memory naming table".into()));
++    }
+     DB_CACHE.with(|cache| {
+         let generation = DB_CACHE_GENERATION.load(Ordering::SeqCst);
+         // A query made while another one runs on this thread (`f` of a
+--- a/hphp/hack/src/hh/src/typing_pessimisation_deps.rs
++++ b/hphp/hack/src/hh/src/typing_pessimisation_deps.rs
+@@ -265,6 +265,10 @@
+     }
+
+     pub(super) fn persist_cache(cache: &Cache, mode: &typing_deps_mode::T) {
++        assert!(
++            !cfg!(target_os = "emscripten"),
++            "Saving dependency graphs is unavailable in the browser checker"
++        );
+         get_stmt_cache(mode, |db| {
+             let mut all_nodes: IndexSet<dep::Variant> = IndexSet::new();
+             let data_of_dep = |dep: &dep::Variant| {

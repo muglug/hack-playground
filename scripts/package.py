@@ -1,4 +1,5 @@
 """Assemble the static site from a freshly linked Emscripten bundle."""
+import gzip
 from pathlib import Path
 import shutil
 import sys
@@ -36,4 +37,6 @@ pkg = dist / "pkg"
 pkg.mkdir(exist_ok=True)
 shutil.copyfile(glue, pkg / "hack_playground.mjs")
 shutil.copyfile(wasm, pkg / wasm.name)
+gzip_size = len(gzip.compress(wasm.read_bytes(), compresslevel=9, mtime=0))
+print(f"{wasm.name}: {wasm.stat().st_size:,} bytes raw, {gzip_size:,} bytes with gzip -9")
 print(dist)

@@ -44,7 +44,10 @@ The build extracts the Rust sources and builtin declarations from the checked-ou
 that temporary copy, and builds with `probe/Cargo.lock`. It downloads and
 verifies the PCRE 8.45 source archive. For offline rebuilds, set
 `PCRE_SOURCE_ARCHIVE` to a previously downloaded copy and use a populated Cargo
-cache. The generated module and WASM are under `dist/pkg/`.
+cache. The generated module and WASM are under `dist/pkg/`. The packaging
+step prints the WASM size in bytes, both raw and compressed with gzip level 9.
+The release uses Rust’s size profile, whole-program link-time optimization,
+and the Emscripten SDK’s `wasm-opt -Oz` pass.
 
 ## GitHub Pages
 
@@ -67,10 +70,11 @@ Emscripten’s generated ES module and serves CodeMirror alongside the checker.
   overlay. The worker loads builtin declarations once. Each edit runs in the
   checker’s isolated IDE context so changed declarations, folded classes,
   syntax errors, and suppressions have the lifetime of that revision.
-- SQLite is present in the dependency graph through naming-table support and
-  shared types. This entry point uses the in-memory naming store. The build
-  patch disables SQLite session support in its staged dependency manifests,
-  which eliminates bindgen and libclang from the build.
+- The browser build uses process-local declaration stores. It excludes the
+  daemon’s SQLite naming-table queries and on-disk dependency graph writer,
+  allowing the linker to drop the SQLite engine. SQLite types still occur in
+  the Rust dependency graph. The staged manifests disable SQLite session
+  support, which also removes the build-time dependency on bindgen and libclang.
 - HHVM uses PCRE to validate `re` literals and determine capture groups, so the
   WASM link includes a static PCRE build. Hakana
   [extracts capture groups in Rust](https://github.com/slackhq/hakana/blob/main/src/code_info_builder/pcre_parser.rs).

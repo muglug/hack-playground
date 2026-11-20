@@ -37,6 +37,8 @@ target=wasm32-unknown-emscripten
 cargo rustc --locked --release --manifest-path "$stage/probe/Cargo.toml" \
     --target-dir "$stage/target" --target "$target" --bin hack_playground -- \
     -L "native=$pcre/.libs" \
+    -C link-arg=-O1 \
+    -C link-arg=-sASSERTIONS=0 \
     -C link-arg=-Wl,--strip-all \
     -C link-arg=-sMODULARIZE=1 \
     -C link-arg=-sEXPORT_ES6=1 \
@@ -47,7 +49,13 @@ cargo rustc --locked --release --manifest-path "$stage/probe/Cargo.toml" \
     -C link-arg=-sALLOW_MEMORY_GROWTH=1 \
     -C link-arg=-sMAXIMUM_MEMORY=536870912
 
-python3 scripts/package.py "$stage/target/$target/release"
+# Use the SDK's Binaryen on the linked module. Running the pass explicitly
+# lets it read the module's target features with this Rust / Emscripten pair.
+release="$stage/target/$target/release"
+wasm="$release/hack_playground.wasm"
+binaryen=$(em-config BINARYEN_ROOT)
+"$binaryen/bin/wasm-opt" -Oz "$wasm" -o "$wasm"
+python3 scripts/package.py "$release"
 mkdir -p dist/licenses
 cp hhvm/hphp/hack/LICENSE dist/licenses/Hack.txt
 cp hhvm/hphp/hsl/LICENSE dist/licenses/HSL.txt
